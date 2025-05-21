@@ -1,59 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Bangalore Home Price Prediction</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="app.js"></script>
-    <link rel="stylesheet" href="app.css">
+    <meta charset="UTF-8">
+    <title>Home Price Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f7f7f7;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            margin-top: 10px;
+            display: block;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border: none;
+            width: 100%;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #priceResult {
+            margin-top: 20px;
+            font-size: 20px;
+            text-align: center;
+            color: #007bff;
+        }
+    </style>
 </head>
 <body>
-<div class="img"></div>
+    <h2>Home Price Predictor</h2>
 
-<div class="form">
-    <h2>Area (Square Feet)</h2>
-    <input class="area" type="text" id="uiSqft" name="Squareft" value="1000">
+    <label for="sqft">Total Square Feet</label>
+    <input type="number" id="sqft" placeholder="Enter total sqft">
 
-    <h2>BHK</h2>
-    <div class="switch-field">
-        <input type="radio" id="radio-bhk-1" name="uiBHK" value="1"/>
-        <label for="radio-bhk-1">1</label>
-        <input type="radio" id="radio-bhk-2" name="uiBHK" value="2" checked/>
-        <label for="radio-bhk-2">2</label>
-        <input type="radio" id="radio-bhk-3" name="uiBHK" value="3"/>
-        <label for="radio-bhk-3">3</label>
-        <input type="radio" id="radio-bhk-4" name="uiBHK" value="4"/>
-        <label for="radio-bhk-4">4</label>
-        <input type="radio" id="radio-bhk-5" name="uiBHK" value="5"/>
-        <label for="radio-bhk-5">5</label>
-    </div>
+    <label for="location">Location</label>
+    <select id="location">
+        <option>Loading...</option>
+    </select>
 
-    <h2>Bath</h2>
-    <div class="switch-field">
-        <input type="radio" id="radio-bath-1" name="uiBathrooms" value="1"/>
-        <label for="radio-bath-1">1</label>
-        <input type="radio" id="radio-bath-2" name="uiBathrooms" value="2" checked/>
-        <label for="radio-bath-2">2</label>
-        <input type="radio" id="radio-bath-3" name="uiBathrooms" value="3"/>
-        <label for="radio-bath-3">3</label>
-        <input type="radio" id="radio-bath-4" name="uiBathrooms" value="4"/>
-        <label for="radio-bath-4">4</label>
-        <input type="radio" id="radio-bath-5" name="uiBathrooms" value="5"/>
-        <label for="radio-bath-5">5</label>
-    </div>
+    <label for="bhk">Bedrooms (BHK)</label>
+    <input type="number" id="bhk" min="1" placeholder="Enter BHK">
 
-    <h2>Location</h2>
-    <div>
-        <select class="location" id="uiLocations">
-            <option value="" disabled selected>Choose a Location</option>
-            <option>Electronic City</option>
-            <option>Rajaji Nagar</option>
-        </select>
-    </div>
+    <label for="bath">Bathrooms</label>
+    <input type="number" id="bath" min="1" placeholder="Enter number of bathrooms">
 
-    <button class="submit" onclick="onClickedEstimatePrice()" type="button">Estimate Price</button>
+    <button onclick="getEstimatedPrice()">Estimate Price</button>
 
-    <div id="uiEstimatedPrice" class="result"><h2></h2></div>
-</div>
+    <div id="priceResult"></div>
 
+    <script>
+        async function getLocations() {
+            const res = await fetch("http://127.0.0.1:5000/get_location_names");
+            const data = await res.json();
+            const locationSelect = document.getElementById("location");
+            locationSelect.innerHTML = "";
+
+            data.locations.forEach(loc => {
+                const opt = document.createElement("option");
+                opt.value = loc;
+                opt.text = loc;
+                locationSelect.appendChild(opt);
+            });
+        }
+
+        async function getEstimatedPrice() {
+            const sqft = document.getElementById("sqft").value;
+            const location = document.getElementById("location").value;
+            const bhk = document.getElementById("bhk").value;
+            const bath = document.getElementById("bath").value;
+
+            const formData = new FormData();
+            formData.append("total_sqft", sqft);
+            formData.append("location", location);
+            formData.append("bhk", bhk);
+            formData.append("bath", bath);
+
+            const res = await fetch("http://127.0.0.1:5000/predict_home_price", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await res.json();
+            const resultDiv = document.getElementById("priceResult");
+
+            if (res.ok) {
+                resultDiv.innerText = `Estimated Price: ₹ ${result.estimated_price} lakhs`;
+            } else {
+                resultDiv.innerText = `Error: ${result.error}`;
+            }
+        }
+
+        // Load locations when page loads
+        window.onload = getLocations;
+    </script>
 </body>
 </html>
